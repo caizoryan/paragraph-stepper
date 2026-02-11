@@ -173,25 +173,28 @@ let text = `Essentially this sentence is going to be the entire book, as you may
 
 let page = Array(45).fill(0).map((e, i) => {
 	return [
-		// (doc) => draw_grid(doc, grid),
+		(doc) => draw_grid(doc, grid),
 		(doc) => {
 			runa(doc, ParagraphStepper(doc, {
 				steps: i,
-				x: grid.recto_columns()[1].x,
-				y: grid.hanglines()[2],
+				x: grid.verso_columns()[0].x,
+				y: grid.hanglines()[4],
 				text,
-				width: 110,
+				width: grid.column_width(3),
 				height: 150,
+				fontFamily: './marist.ttf',
+				fontSize: 9,
 				stats: {
-					x: grid.verso_columns()[1].x,
-					y: grid.hanglines()[2],
+					x: grid.verso_columns()[0].x,
+					y: grid.hanglines()[0],
 				}
 			}))
 		}]
 })
 
 let ParagraphStepper = (doc, props) => {
-	doc.font(tag.font)
+	props.fontFamily ? doc.font(props.fontFamily) : 0
+	props.fontSize ? doc.fontSize(props.fontSize) : 0
 
 	let lines = [
 		["Rect", {
@@ -199,7 +202,8 @@ let ParagraphStepper = (doc, props) => {
 			y: props.y,
 			width: props.width,
 			height: props.height,
-			stroke: "black"
+			stroke: "black",
+			strokeStyle: [5, 8],
 		}]
 
 	]
@@ -211,7 +215,11 @@ let ParagraphStepper = (doc, props) => {
 	let steps = props.steps
 	// let 
 	while (words.length > 0 && cursorY < (props.y + props.height) && steps > 0) {
-		let leftOvers = Line(doc, { words, x: props.x, y: cursorY, width: props.width, steps })
+		let lineOpts = { words, x: props.x, y: cursorY, width: props.width, steps }
+		if (props.fontFamily) lineOpts.fontFamily = props.fontFamily
+		if (props.fontSize) lineOpts.fontSize = props.fontSize
+
+		let leftOvers = Line(doc, lineOpts)
 		leftOvers.draw.forEach(e => lines.push(e))
 		steps = leftOvers.steps
 		cursorX = leftOvers.cursorX
@@ -225,7 +233,7 @@ let ParagraphStepper = (doc, props) => {
 		x: props.stats.x,
 		y: props.stats.y,
 		width: 200,
-		// fontFamily: tag.font,
+		fontFamily: tag.font,
 		fontSize: 7,
 	}])
 
@@ -286,6 +294,9 @@ let Line = (doc, props) => {
 			text: word
 		}
 
+		if (props.fontFamily) opts.fontFamily = props.fontFamily
+		if (props.fontSize) opts.fontSize = props.fontSize
+
 		steps -= 1
 		cursorX += width
 
@@ -299,12 +310,12 @@ let Line = (doc, props) => {
 					y: opts.y + height + 2,
 				},
 				{
-					x: grid.recto_columns()[5].x,
+					x: grid.verso_columns()[5].x,
 					y: opts.y + height + 2 + 40,
 				},
 
 				{
-					x: grid.recto_columns()[6].x,
+					x: grid.verso_columns()[6].x,
 					y: opts.y + height + 2 + 40,
 				},
 				]
@@ -313,7 +324,7 @@ let Line = (doc, props) => {
 				text: "X: " + opts.x.toFixed(0),
 				fontSize: 7,
 				fill: 'blue',
-				x: grid.recto_columns()[6].x,
+				x: grid.verso_columns()[6].x,
 				y: opts.y + height + 2 + 40,
 			}])
 		}
@@ -456,7 +467,7 @@ let drawCircleDocFn = (props) => (doc) => {
 	doc.restore();
 };
 
-let availableFonts = ["Times-Roman", "hermit", tag.font, title.font];
+let availableFonts = ["Times-Roman", "hermit", tag.font, title.font, './marist.ttf'];
 
 let drawTextDocFn = (props) => (doc) => {
 	doc.save();
@@ -556,6 +567,7 @@ let drawRectDocFn = (props) => (doc) => {
 	let width = props.width ? props.width : 0;
 	let height = props.height ? props.height : 0;
 	doc.rect(x, y, width, height);
+	if (props.strokeStyle) doc.dash(props.strokeStyle[0])
 	if (props.stroke && props.fill) doc.fillAndStroke(props.fill, props.stroke);
 	else {
 		if (props.stroke) doc.stroke(props.stroke);
