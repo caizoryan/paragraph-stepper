@@ -78,10 +78,20 @@ let grid = new Grid({
 
 	gutter: inch(.125),
 	columns: 8,
-	hanglines: [],
+	hanglines: [
+		inch(1),
+		inch(2),
+		inch(3),
+		inch(4),
+		inch(5),
+		inch(6),
+	],
 
-	page_width: inch(11),
-	page_height: inch(8.5)
+	spread_width: inch(10),
+	spread_height: inch(8),
+
+	page_width: inch(10),
+	page_height: inch(7.5)
 })
 
 let draw_grid = (doc, grid) => {
@@ -92,6 +102,15 @@ let draw_grid = (doc, grid) => {
 
 	doc.lineWidth(strokeWeight)
 	doc.strokeColor(strokeColor)
+
+	grid.hanglines().forEach(e => {
+		drawLineDocFn({
+			points: [{ x: 0, y: e }, { x: grid.props.page_width, y: e }],
+			stroke: [100, 0, 0, 0],
+			strokeWeight: 1,
+		})(doc)
+
+	})
 
 	recto.forEach((col) => {
 		doc.rect(col.x, col.y, col.w, col.h)
@@ -150,29 +169,100 @@ let signature2 = spreads.slice(spreads.length / 4 - 1, (spreads.length / 4) * 2 
 let signature3 = spreads.slice((spreads.length / 4) * 2 - 2, (spreads.length / 4) * 3 - 2)
 let signature4 = spreads.slice((spreads.length / 4) * 3 - 3)
 
-let page = [(doc) => {
-	// runa(doc, [
-	// 	["Text", { text: "HELLO", x: 10, y: 80, fill: "red" }],
-	// 	["Text", { text: "WORLD", x: 40, y: 80 }]
-	// ])
-	//
-	runa(doc, Paragraph(doc, { steps: 3, x: 50, y: 50, text: "this is a sentence and I'm guessing I'll also have to specifiy width so it works properly.", width: 50, height: 150 }))
-}]
+let text = `Essentially this sentence is going to be the entire book, as you may have realised if you got this far....`
 
-let Paragraph = (doc, props) => {
-	let lines = []
+let page = Array(45).fill(0).map((e, i) => {
+	return [
+		// (doc) => draw_grid(doc, grid),
+		(doc) => {
+			runa(doc, ParagraphStepper(doc, {
+				steps: i,
+				x: grid.recto_columns()[1].x,
+				y: grid.hanglines()[2],
+				text,
+				width: 110,
+				height: 150,
+				stats: {
+					x: grid.verso_columns()[1].x,
+					y: grid.hanglines()[2],
+				}
+			}))
+		}]
+})
+
+let ParagraphStepper = (doc, props) => {
+	doc.font(tag.font)
+
+	let lines = [
+		["Rect", {
+			x: props.x,
+			y: props.y,
+			width: props.width,
+			height: props.height,
+			stroke: "black"
+		}]
+
+	]
 	let words = props.text.split(" ")
+	let totalWords = words.length
 	let leading = props.leading ? props.leading : 12
 	let cursorY = props.y
+	let cursorX = props.x
 	let steps = props.steps
 	// let 
-	while (words.length > 0 && cursorY < (props.y + props.height) && steps != 0) {
-		console.log(words.length)
-		let leftOvers = Line(doc, { words, x: props.x, y: cursorY, width: props.width })
+	while (words.length > 0 && cursorY < (props.y + props.height) && steps > 0) {
+		let leftOvers = Line(doc, { words, x: props.x, y: cursorY, width: props.width, steps })
 		leftOvers.draw.forEach(e => lines.push(e))
-		steps -= leftOvers.steps
+		steps = leftOvers.steps
+		cursorX = leftOvers.cursorX
 		cursorY += leading
 	}
+
+	let wordIndex = totalWords - words.length
+
+	lines.push(["Text", {
+		text: "Word Index: " + wordIndex,
+		x: props.stats.x,
+		y: props.stats.y,
+		width: 200,
+		// fontFamily: tag.font,
+		fontSize: 7,
+	}])
+
+	lines.push(["Text", {
+		text: "CursorX: " + cursorX.toFixed(2) + " points",
+		x: props.stats.x,
+		y: props.stats.y + leading,
+		width: 200,
+		fill: cursorX > (props.x + props.width) ? "red" : 'black',
+		fontSize: 7,
+	}])
+
+	lines.push(["Text", {
+		text: "Edge: " + (props.x + props.width) + " points",
+		x: props.stats.x,
+		y: props.stats.y + leading * 2,
+		width: 200,
+		fill: cursorX > (props.x + props.width) ? "red" : 'black',
+		fontSize: 7,
+	}])
+
+
+	lines.push(["Text", {
+		text: "CursorY: " + cursorY.toFixed(2) + " points",
+		x: props.stats.x,
+		y: props.stats.y + leading * 3,
+		width: 200,
+		fontSize: 7,
+	}])
+
+	lines.push(["Text", {
+		text: "",
+		x: props.stats.x,
+		y: props.stats.y + leading * 3,
+		width: 200,
+		// fontSize: 7,
+	}])
 
 	return lines
 }
@@ -186,7 +276,9 @@ let Line = (doc, props) => {
 		let word = words.shift()
 		if (!word) break
 		let width = doc.widthOfString(word)
+		let height = doc.heightOfString(word)
 		let spaceWidth = doc.widthOfString(" ")
+
 
 		let opts = {
 			x: cursorX,
@@ -194,24 +286,69 @@ let Line = (doc, props) => {
 			text: word
 		}
 
-		if (width + cursorX > props.x + props.width) {
-			opts.fill = 'red'
-			words.unshift(word)
+		steps -= 1
+		cursorX += width
+
+		if (steps == 0) {
+
+			drawables.push(["Line", {
+				stroke: 'blue',
+				strokeWeight: 1,
+				points: [{
+					x: opts.x,
+					y: opts.y + height + 2,
+				},
+				{
+					x: grid.recto_columns()[5].x,
+					y: opts.y + height + 2 + 40,
+				},
+
+				{
+					x: grid.recto_columns()[6].x,
+					y: opts.y + height + 2 + 40,
+				},
+				]
+			}])
+			drawables.push(["Text", {
+				text: "X: " + opts.x.toFixed(0),
+				fontSize: 7,
+				fill: 'blue',
+				x: grid.recto_columns()[6].x,
+				y: opts.y + height + 2 + 40,
+			}])
 		}
 
-		cursorX += width + spaceWidth
+		let rectOpts = { ...opts }
+		rectOpts.width = width + spaceWidth
+		rectOpts.height = height
+		rectOpts.stroke = 'blue'
+		// rectOpts.fill = [0, 0, 80, 0]
+		if (steps == 0) drawables.push(["Rect", rectOpts])
+
+		if (cursorX > props.x + props.width) {
+			opts.fill = 'red'
+			words.unshift(word)
+			if (steps == 0) drawables.push(["Text", opts])
+			break
+		}
+
+		cursorX += spaceWidth
+
 		drawables.push(["Text", opts])
 
-		//
+		if (cursorX > props.x + props.width) {
+			cursorX -= spaceWidth
+			break
+		}
 	}
 
 	return {
 		draw: drawables,
-		words, steps
+		words, steps, cursorX
 	}
 }
 
-spreads.push(page)
+spreads = page
 
 page_number += 2
 
@@ -220,10 +357,14 @@ let writeSpreads = (spreads, filename) => {
 	doc.pipe(fs.createWriteStream(filename));
 
 	spreads.forEach((spread, i) => {
+		doc.save()
+		doc.translate(inch(.5), inch(.5))
+
 		spread.forEach(item => {
 			item(doc)
 		})
 
+		doc.restore()
 		if (i != spreads.length - 1) doc.addPage()
 	})
 
@@ -315,7 +456,7 @@ let drawCircleDocFn = (props) => (doc) => {
 	doc.restore();
 };
 
-let availableFonts = ["Times-Roman", "hermit"];
+let availableFonts = ["Times-Roman", "hermit", tag.font, title.font];
 
 let drawTextDocFn = (props) => (doc) => {
 	doc.save();
@@ -407,11 +548,29 @@ let drawLineDocFn = (props) => (doc) => {
 	doc.restore();
 };
 
+let drawRectDocFn = (props) => (doc) => {
+	doc.save();
+	if (props.strokeWeight) doc.lineWidth(props.strokeWeight);
+	let x = props.x ? props.x : 0;
+	let y = props.y ? props.y : 0;
+	let width = props.width ? props.width : 0;
+	let height = props.height ? props.height : 0;
+	doc.rect(x, y, width, height);
+	if (props.stroke && props.fill) doc.fillAndStroke(props.fill, props.stroke);
+	else {
+		if (props.stroke) doc.stroke(props.stroke);
+		if (props.fill) doc.fill(props.fill);
+	}
+
+	doc.restore();
+};
+
 let runa = (doc, drawables) => {
 	let fns = {
 		"Circle": drawCircleDocFn,
 		"Text": drawTextDocFn,
 		"Image": drawImageDocFn,
+		"Rect": drawRectDocFn,
 		"Line": drawLineDocFn,
 		"Group": (props) => (doc) => {
 			let drawables = props.draw ? props.draw : [];
