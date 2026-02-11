@@ -156,7 +156,7 @@ let page = [(doc) => {
 	// 	["Text", { text: "WORLD", x: 40, y: 80 }]
 	// ])
 	//
-	runa(doc, Paragraph(doc, { x: 50, y: 50, text: "this is a sentence and I'm guessing I'll also have to specifiy width so it works properly.", width: 50, height: 150 }))
+	runa(doc, Paragraph(doc, { steps: 3, x: 50, y: 50, text: "this is a sentence and I'm guessing I'll also have to specifiy width so it works properly.", width: 50, height: 150 }))
 }]
 
 let Paragraph = (doc, props) => {
@@ -164,11 +164,13 @@ let Paragraph = (doc, props) => {
 	let words = props.text.split(" ")
 	let leading = props.leading ? props.leading : 12
 	let cursorY = props.y
+	let steps = props.steps
 	// let 
-	while (words.length > 0 && cursorY < (props.y + props.height)) {
+	while (words.length > 0 && cursorY < (props.y + props.height) && steps != 0) {
 		console.log(words.length)
 		let leftOvers = Line(doc, { words, x: props.x, y: cursorY, width: props.width })
 		leftOvers.draw.forEach(e => lines.push(e))
+		steps -= leftOvers.steps
 		cursorY += leading
 	}
 
@@ -178,8 +180,9 @@ let Paragraph = (doc, props) => {
 let Line = (doc, props) => {
 	let words = props.words
 	let cursorX = props.x
+	let steps = props.steps
 	let drawables = []
-	while (words.length > 0 && cursorX < (props.x + props.width)) {
+	while (words.length > 0 && cursorX < (props.x + props.width) && steps != 0) {
 		let word = words.shift()
 		if (!word) break
 		let width = doc.widthOfString(word)
@@ -204,7 +207,7 @@ let Line = (doc, props) => {
 
 	return {
 		draw: drawables,
-		words
+		words, steps
 	}
 }
 
@@ -405,7 +408,6 @@ let drawLineDocFn = (props) => (doc) => {
 };
 
 let runa = (doc, drawables) => {
-
 	let fns = {
 		"Circle": drawCircleDocFn,
 		"Text": drawTextDocFn,
