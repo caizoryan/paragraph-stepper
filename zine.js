@@ -168,15 +168,33 @@ let stylesheet = (doc, t) => Object.entries(t).forEach(([k, v]) => doc[k](v))
 
 let page_number = 1
 
-let spreads = []
+let cover = [(doc) => {
+	doc.save()
+	doc.font("./monument_mono_bold.otf")
+	doc.fontSize(32)
+	doc.fillColor('black')
+	doc.text("WORDS", grid.recto_columns()[1].x, grid.hanglines()[7])
+	doc.restore()
+}]
+
+let colophon = (doc) => {
+	stylesheet(doc, tag)
+	doc.text('COLOPHON', grid.verso_columns()[0].x, inch(4))
+	stylesheet(doc, body)
+	doc.text(`
+This publication is typeset using ./monument_mono.otf  and ./marist.ttf by ABC Dinamo. The PDF file was produced with love from a handwritten Javascript file.
+`, grid.verso_columns()[0].x, inch(4.5), { width: grid.column_width(5.1) })
+}
+
+let spreads = [cover, [blankpage]]
 // spreads.push([basic])
 //
 
 let text = `From this sensation trickles emotion and language, and from language flows narrative and meaning, which then flood into identity, society, and the political, commercial, and environment world. But it all must start with form.`
 
-let page = Array(45).fill(0).map((e, i) => {
+let page = Array(40).fill(0).map((e, i) => {
 	return [
-		(doc) => draw_grid(doc, grid),
+		// (doc) => draw_grid(doc, grid),
 		// ...[
 		// 	i * 2, i * 2 + 1
 		// 	// i * 3, i * 3 + 1, i * 3 + 2
@@ -186,7 +204,7 @@ let page = Array(45).fill(0).map((e, i) => {
 				steps: i,
 				x: grid.recto_columns()[1].x,
 				// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
-				y: grid.hanglines()[4],
+				y: grid.hanglines()[3],
 				text,
 				width: grid.column_width(5),
 				height: 150,
@@ -200,7 +218,7 @@ let page = Array(45).fill(0).map((e, i) => {
 				statsBottom: {
 					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
 					x: grid.recto_columns()[1].x,
-					y: grid.hanglines()[9],
+					y: grid.hanglines()[8],
 				}
 			}))
 		},
@@ -223,6 +241,44 @@ let boxed = (doc, t, x, y, pad, color = 'black') => {
 	doc.fillColor(color)
 	doc.text(t, x, y, { lineBreak: false })
 	doc.restore()
+}
+
+let Head = (t, x, y) =>
+	["Text", {
+		text: t,
+		x, y,
+		width: grid.column_width(6),
+		fontSize: 11,
+		fontFamily: './monument_mono_regular.otf',
+		fill: [0, 0, 0, 65],
+	}]
+
+let Body = (t, x, y) => ["Text", {
+	text: t,
+	x, y,
+	width: grid.column_width(6),
+	fontSize: 6,
+	fontFamily: './monument_mono_regular.otf',
+	fill: [0, 0, 0, 55],
+}]
+
+
+let instructionSheet = (doc) => {
+	return [
+		Head("EVERY ITERATION", grid.verso_columns()[1].x, grid.hanglines()[3]),
+		Body(`x. Get the first word from 'words'
+x. Check if 'Cursor X' + 'Word Width' is (>) Greater than 'Edge'
++. [If] above condition is true (jump to INCREMENT LINE)
++. [Else] place the word at 'Cursor X' and 'Cursor Y' and increment 'Cursor X' by 'Word Width'
+`, grid.verso_columns()[1].x, grid.hanglines()[4])
+		,
+
+		Head("INCREMENT LINE", grid.verso_columns()[1].x, grid.hanglines()[7]),
+		Body(`x. Put current word back in the list
+x. Reset 'Cursor X' to 'Start Position X'
+x. Increment 'Cursor Y' by 'Leading'
+`, grid.verso_columns()[1].x, grid.hanglines()[8])
+	]
 }
 
 let ParagraphStepper = (doc, props) => {
@@ -250,6 +306,7 @@ let ParagraphStepper = (doc, props) => {
 			props.x + props.width,
 			props.y + props.height,
 			2)],
+		...instructionSheet()
 	]
 	let words = props.text.split(" ")
 	let totalWords = words.length
@@ -401,7 +458,7 @@ let ParagraphStepper = (doc, props) => {
 		lines.push([(doc) => boxed(doc,
 			"When [X + Word Width] > [edge]",
 			grid.recto_columns()[4].x,
-			grid.hanglines()[9],
+			grid.hanglines()[8],
 			1.5, [0, 0, 0, 100])
 		])
 		// lines.push(["Text", {
@@ -463,20 +520,22 @@ let ParagraphStepper = (doc, props) => {
 	// 	...style
 	// }])
 
-	let pos2 = line(7, props.statsBottom.x, props.statsBottom.y, leading)
-	lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
+	if (!crossed) {
+		let pos2 = line(4, props.statsBottom.x, props.statsBottom.y, leading)
+		lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
 
-	lines.push(["Text", {
-		text: '[word] "' + currentWord + '"',
-		...line(8, props.statsBottom.x, props.statsBottom.y, leading),
-		...style
-	}])
+		lines.push(["Text", {
+			text: '[word] "' + currentWord + '"',
+			...line(5, props.statsBottom.x, props.statsBottom.y, leading),
+			...style
+		}])
 
-	lines.push(["Text", {
-		text: "[width] " + currentWordWidth,
-		...line(9, props.statsBottom.x, props.statsBottom.y, leading),
-		...style
-	}])
+		lines.push(["Text", {
+			text: "[width] " + currentWordWidth,
+			...line(6, props.statsBottom.x, props.statsBottom.y, leading),
+			...style
+		}])
+	}
 
 
 	lines.push(["Text", {
@@ -659,19 +718,27 @@ let page_number_fn = (page_number) => (doc) => {
 	doc.text((pg) + '', grid.recto_columns()[1].x, inch(.425))
 }
 
-spreads = page
+spreads.push(...page)
+// spreads.push([blankpage])
+spreads.push([colophon])
+// spreads.push([blankpage])
+// spreads.push([blankpage])
+spreads.push([blankpage])
 
 // page_number += 2
-spreads.forEach(e => {
+spreads.forEach((e, i) => {
+	if (i < 2) return
 	let fn = page_number_fn(page_number)
 	e.push(fn)
 	page_number += 2
 })
 
-let signature1 = spreads.slice(0, spreads.length / 4)
-let signature2 = spreads.slice(spreads.length / 4 - 1, (spreads.length / 4) * 2 - 1)
-let signature3 = spreads.slice((spreads.length / 4) * 2 - 2, (spreads.length / 4) * 3 - 2)
-let signature4 = spreads.slice((spreads.length / 4) * 3 - 3)
+
+let signature1 = spreads.slice(0, 13)
+let signature2 = spreads.slice(12, 23)
+let signature3 = spreads.slice(22, 33)
+let signature4 = spreads.slice(32, 43)
+// let signature5 = spreads.slice(42, 53)
 
 let writeSpreads = (spreads, filename) => {
 	const doc = new PDFDocument({ layout: 'landscape' });
@@ -946,6 +1013,7 @@ if (printing) {
 	writeSignature(signature2, 'zine_signature2.pdf')
 	writeSignature(signature3, 'zine_signature3.pdf')
 	writeSignature(signature4, 'zine_signature4.pdf')
+	// writeSignature(signature5, 'zine_signature5.pdf')
 }
 else writeSpreads(spreads, "test.pdf")
 
