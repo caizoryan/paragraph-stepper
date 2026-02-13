@@ -112,7 +112,8 @@ let draw_grid = (doc, grid) => {
 	grid.hanglines().forEach(e => {
 		drawLineDocFn({
 			points: [{ x: 0, y: e }, { x: grid.props.page_width, y: e }],
-			stroke: [100, 0, 0, 0],
+			stroke: [0, 50, 0, 0],
+			strokeStyle: [2],
 			strokeWeight: .1,
 		})(doc)
 
@@ -190,7 +191,7 @@ let page = Array(45).fill(0).map((e, i) => {
 				width: grid.column_width(5),
 				height: 150,
 				fontFamily: './marist.ttf',
-				fontSize: 9.5,
+				fontSize: 9.25,
 				statsTop: {
 					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
 					x: grid.recto_columns()[1].x,
@@ -258,14 +259,16 @@ let ParagraphStepper = (doc, props) => {
 	let steps = props.steps
 	let crossed = false
 
+	let currentWord = ''
+	let currentWordWidth = ""
 
 	let line = (num, x, y, leading) => ({
 		x,
 		y: y + leading * num,
 	})
 
-	let xDataPosition = line(1, props.statsBottom.x, props.statsBottom.y, leading)
-	let yDataPosition = line(2, props.statsBottom.x, props.statsBottom.y, leading)
+	let xDataPosition = line(1, props.statsBottom.x, props.statsBottom.y, leading + 2)
+	let yDataPosition = line(2, props.statsBottom.x, props.statsBottom.y, leading + 2)
 
 	// let 
 	while (words.length > 0 && cursorY < (props.y + props.height) && steps > 0) {
@@ -279,24 +282,27 @@ let ParagraphStepper = (doc, props) => {
 		steps = leftOvers.steps
 		cursorX = leftOvers.cursorX
 		crossed = leftOvers.crossed
+		currentWord = leftOvers.currentWord
+		currentWordWidth = leftOvers.currentWordWidth.toFixed(1)
+
 		cursorY += leading
 	}
 
 	if (crossed) {
 		cursorX = props.x
+		cursorY += leading
 		edgeLine.strokeWeight = 1.2
 		edgeLine.stroke = [0, 100, 50, 0]
 
 		lines.push(['Rect', {
 			x: grid.recto_columns()[0].x + 2,
 			y: xDataPosition.y - 7,
-			width: grid.column_width(6),
+			width: grid.column_width(3),
 			height: 65,
 			stroke: [100, 0, 0, 0],
 			strokeWeight: 1,
 			fill: 'white',
 		}])
-
 
 		// --------------
 		// Start Marker
@@ -380,7 +386,7 @@ let ParagraphStepper = (doc, props) => {
 		])
 
 		lines.push([(doc) => boxed(doc,
-			"Increment Y position by Leading",
+			"Increment Y Position by Leading",
 			grid.recto_columns()[4].x,
 			yDataPosition.y + 1.5,
 			.5, [100, 0, 0, 0])
@@ -390,31 +396,32 @@ let ParagraphStepper = (doc, props) => {
 		// Conditional
 		// --------------
 		// --------------
-		lines.push(["Text", {
-			text: "When [X + Word Width] > [edge]",
-			x: grid.recto_columns()[4].x,
-			y: grid.hanglines()[9],
-			width: 232,
-			height: 132,
-			fontFamily: tag.font,
-			fontSize: 7,
-			fill: [0, 0, 0, 50]
-		}])
+
+
+		lines.push([(doc) => boxed(doc,
+			"When [X + Word Width] > [edge]",
+			grid.recto_columns()[4].x,
+			grid.hanglines()[9],
+			1.5, [0, 0, 0, 100])
+		])
+		// lines.push(["Text", {
+		// 	text: "When [X + Word Width] > [edge]",
+		// 	x: grid.recto_columns()[4].x,
+		// 	y: grid.hanglines()[9],
+		// 	width: 232,
+		// 	height: 132,
+		// 	fontFamily: tag.font,
+		// 	fontSize: 7,
+		// 	fill: [0, 0, 0, 50]
+		// }])
 	}
 
-
-
-
-
-
 	let wordIndex = totalWords - words.length
-
 	let style = {
 		width: 200,
 		fontFamily: tag.font,
 		fontSize: 7,
 	}
-
 
 	lines.push(["Text", {
 		text: "words = [" + words.map(e => '"' + e + '"').join(', ') + "]",
@@ -456,6 +463,20 @@ let ParagraphStepper = (doc, props) => {
 	// 	...style
 	// }])
 
+	let pos2 = line(7, props.statsBottom.x, props.statsBottom.y, leading)
+	lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
+
+	lines.push(["Text", {
+		text: '[word] "' + currentWord + '"',
+		...line(8, props.statsBottom.x, props.statsBottom.y, leading),
+		...style
+	}])
+
+	lines.push(["Text", {
+		text: "[width] " + currentWordWidth,
+		...line(9, props.statsBottom.x, props.statsBottom.y, leading),
+		...style
+	}])
 
 
 	lines.push(["Text", {
@@ -475,6 +496,10 @@ let Line = (doc, props) => {
 	let steps = props.steps
 	let drawables = []
 	let crossed = false
+
+	let currentWord = ''
+	let currentWordWidth = 0
+
 	while (words.length > 0 && cursorX < (props.x + props.width) && steps != 0) {
 		let word = words.shift()
 		if (!word) break
@@ -559,9 +584,12 @@ let Line = (doc, props) => {
 				y: opts.y + height + 18 + statHeight,
 			}
 
+			currentWord = word
+			currentWordWidth = width + spaceWidth
+
 			drawables.push([
 				(doc) => boxed(doc,
-					"X + WIDTH = " + (opts.x + width + spaceWidth).toFixed(1),
+					"X + WORD WIDTH = " + (opts.x + width + spaceWidth).toFixed(1),
 					props.x + grid.column_width(3),
 					opts.y + height + 18 + statHeight,
 					1.5, crossed ? "red" : 'black'
@@ -617,30 +645,18 @@ let Line = (doc, props) => {
 	return {
 		draw: drawables,
 		crossed,
-		words, steps, cursorX
+		words, steps, cursorX,
+		currentWord,
+		currentWordWidth,
 	}
 }
 
 
 let page_number_fn = (page_number) => (doc) => {
 	let pg = page_number
-	if (pg - 1 != 0) doc.text((pg - 1) + '', grid.verso_columns()[2].x, inch(.425))
+	doc.fontSize(9)
+	if (pg - 1 != 0) doc.text((pg - 1) + '', grid.verso_columns()[1].x, inch(.425))
 	doc.text((pg) + '', grid.recto_columns()[1].x, inch(.425))
-
-	// return ["Text", {
-	// 	text: pg + 'ASS',
-	// 	x: grid.recto_columns()[4].x,
-	// 	y: inch(.825)
-	// }]
-	//["Group",
-
-	// 	["Text", {
-	// 		text: (pg + 1) + '',
-	// 		x: grid.verso_columns()[4].x,
-	// 		y: inch(.825)
-	// 	}]
-	//
-	// ]
 }
 
 spreads = page
