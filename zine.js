@@ -64,7 +64,7 @@ let metadata = (doc, block, dims) => {
 
 let block = (doc, block, dims) => {
 	let { x, y, width, height } = dims
-	doc.image("./images/" + block.id + ".jpg", x, y, { width })
+	// doc.image("./images/" + block.id + ".jpg", x, y, { width })
 	metadata(doc, block, { x, y: y - inch(1.5), width })
 }
 
@@ -103,7 +103,7 @@ let grid = new Grid({
 let draw_grid = (doc, grid) => {
 	let [recto, verso] = grid.columns()
 
-	let strokeWeight = .1
+	let strokeWeight = .5
 	let strokeColor = [10, 0, 0, 0]
 
 	doc.lineWidth(strokeWeight)
@@ -114,7 +114,7 @@ let draw_grid = (doc, grid) => {
 			points: [{ x: 0, y: e }, { x: grid.props.page_width, y: e }],
 			stroke: [0, 50, 0, 0],
 			strokeStyle: [2],
-			strokeWeight: .1,
+			strokeWeight: .5,
 		})(doc)
 
 	})
@@ -169,11 +169,23 @@ let stylesheet = (doc, t) => Object.entries(t).forEach(([k, v]) => doc[k](v))
 let page_number = 1
 
 let cover = [(doc) => {
+
+	doc.image('./cover.png',
+		grid.recto_columns()[1].x, -1 * grid.hanglines()[2],
+		{ width: 200 })
+
+	doc.image('./cover.png',
+		grid.recto_columns()[0].x, grid.hanglines()[5],
+		{ width: 250 })
+
 	doc.save()
 	doc.font("./monument_mono_bold.otf")
 	doc.fontSize(32)
 	doc.fillColor('black')
-	doc.text("WORDS", grid.recto_columns()[1].x, grid.hanglines()[7])
+	doc.text("PARAGRAPH", grid.recto_columns()[1].x, grid.hanglines()[3])
+
+	side_page_thingie(doc, 2)
+
 	doc.restore()
 }]
 
@@ -186,7 +198,47 @@ This publication is typeset using ./monument_mono.otf  and ./marist.ttf by ABC D
 `, grid.verso_columns()[0].x, inch(4.5), { width: grid.column_width(5.1) })
 }
 
-let spreads = [cover, [blankpage]]
+let Head = (t, x, y) =>
+	["Text", {
+		text: t,
+		x, y,
+		width: grid.column_width(6),
+		fontSize: 11,
+		fontFamily: './monument_mono_regular.otf',
+		fill: [0, 0, 0, 65],
+	}]
+
+let Body = (t, x, y) => ["Text", {
+	text: t,
+	x, y,
+	width: grid.column_width(6),
+	fontSize: 6,
+	fontFamily: './monument_mono_regular.otf',
+	fill: [0, 0, 0, 55],
+}]
+
+let instructionSheet = [
+	Head("EVERY ITERATION", grid.recto_columns()[1].x, grid.hanglines()[3]),
+	Body(`x. Get the first word from 'words'
+x. Check if 'Cursor X' + 'Word Width' is (>) Greater than 'Edge'
++. [If] above condition is true (jump to INCREMENT LINE)
++. [Else] place the word at 'Cursor X' and 'Cursor Y' and increment 'Cursor X' by 'Word Width'
+`, grid.recto_columns()[1].x, grid.hanglines()[4])
+	,
+
+	Head("INCREMENT LINE", grid.recto_columns()[1].x, grid.hanglines()[7]),
+	Body(`x. Put current word back in the list
+x. Reset 'Cursor X' to 'Start Position X'
+x. Increment 'Cursor Y' by 'Leading'
+`, grid.recto_columns()[1].x, grid.hanglines()[8])
+]
+
+let spreads = [cover,
+	[
+		(doc) => runa(doc, instructionSheet),
+		doc => side_page_thingie(doc, 2)
+	]
+]
 // spreads.push([basic])
 //
 
@@ -229,7 +281,7 @@ let boxed = (doc, t, x, y, pad, color = 'black') => {
 	doc.save()
 	doc.font(tag.font)
 	doc.fontSize(6)
-	doc.lineWidth(.1)
+	doc.lineWidth(1)
 	let bounds = doc.boundsOfString(t, { lineBreak: false })
 	doc.undash()
 	doc.rect(
@@ -243,43 +295,8 @@ let boxed = (doc, t, x, y, pad, color = 'black') => {
 	doc.restore()
 }
 
-let Head = (t, x, y) =>
-	["Text", {
-		text: t,
-		x, y,
-		width: grid.column_width(6),
-		fontSize: 11,
-		fontFamily: './monument_mono_regular.otf',
-		fill: [0, 0, 0, 65],
-	}]
-
-let Body = (t, x, y) => ["Text", {
-	text: t,
-	x, y,
-	width: grid.column_width(6),
-	fontSize: 6,
-	fontFamily: './monument_mono_regular.otf',
-	fill: [0, 0, 0, 55],
-}]
 
 
-let instructionSheet = (doc) => {
-	return [
-		Head("EVERY ITERATION", grid.verso_columns()[1].x, grid.hanglines()[3]),
-		Body(`x. Get the first word from 'words'
-x. Check if 'Cursor X' + 'Word Width' is (>) Greater than 'Edge'
-+. [If] above condition is true (jump to INCREMENT LINE)
-+. [Else] place the word at 'Cursor X' and 'Cursor Y' and increment 'Cursor X' by 'Word Width'
-`, grid.verso_columns()[1].x, grid.hanglines()[4])
-		,
-
-		Head("INCREMENT LINE", grid.verso_columns()[1].x, grid.hanglines()[7]),
-		Body(`x. Put current word back in the list
-x. Reset 'Cursor X' to 'Start Position X'
-x. Increment 'Cursor Y' by 'Leading'
-`, grid.verso_columns()[1].x, grid.hanglines()[8])
-	]
-}
 
 let ParagraphStepper = (doc, props) => {
 	props.fontFamily ? doc.font(props.fontFamily) : 0
@@ -287,7 +304,7 @@ let ParagraphStepper = (doc, props) => {
 
 	let edgeLine = {
 		stroke: [0, 30, 0, 0],
-		strokeWeight: .1,
+		strokeWeight: .5,
 		strokeStyle: [4, 4],
 		points: [{
 			x: props.x + props.width,
@@ -306,7 +323,6 @@ let ParagraphStepper = (doc, props) => {
 			props.x + props.width,
 			props.y + props.height,
 			2)],
-		...instructionSheet()
 	]
 	let words = props.text.split(" ")
 	let totalWords = words.length
@@ -400,7 +416,7 @@ let ParagraphStepper = (doc, props) => {
 		}])
 
 		lines.push([(doc) => boxed(doc,
-			"Start: " + props.x,
+			"Start: " + props.x.toFixed(1),
 			grid.recto_columns()[0].x,
 			grid.hanglines()[3],
 			1.5)
@@ -520,22 +536,25 @@ let ParagraphStepper = (doc, props) => {
 	// 	...style
 	// }])
 
-	if (!crossed) {
-		let pos2 = line(4, props.statsBottom.x, props.statsBottom.y, leading)
-		lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
-
-		lines.push(["Text", {
-			text: '[word] "' + currentWord + '"',
-			...line(5, props.statsBottom.x, props.statsBottom.y, leading),
-			...style
-		}])
-
-		lines.push(["Text", {
-			text: "[width] " + currentWordWidth,
-			...line(6, props.statsBottom.x, props.statsBottom.y, leading),
-			...style
-		}])
+	let wordPosIndex = 4
+	if (crossed) {
+		wordPosIndex = 7
 	}
+
+	let pos2 = line(wordPosIndex, props.statsBottom.x, props.statsBottom.y, leading)
+	lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
+
+	lines.push(["Text", {
+		text: '[word] "' + currentWord + '"',
+		...line(wordPosIndex + 1, props.statsBottom.x, props.statsBottom.y, leading),
+		...style
+	}])
+
+	lines.push(["Text", {
+		text: "[width] " + currentWordWidth,
+		...line(wordPosIndex + 2, props.statsBottom.x, props.statsBottom.y, leading),
+		...style
+	}])
 
 
 	lines.push(["Text", {
@@ -583,13 +602,16 @@ let Line = (doc, props) => {
 
 		let statHeight = 45
 
-		if (steps == 0) {
+		if (
+			// false
+			steps == 0
+		) {
 			// X Line
 			drawables.push(["Line", {
 				stroke: 'black',
-				lineCap: randomLiner(),
-				strokeWeight: Math.random() * .5,
-				lineJoin: randomLiner(),
+				// lineCap: randomLiner(),
+				strokeWeight: 1,
+				// lineJoin: randomLiner(),
 				points: [{
 					x: opts.x,
 					y: opts.y + height + 2,
@@ -604,13 +626,13 @@ let Line = (doc, props) => {
 				},
 				]
 			}])
-
-			// WIDTH LINE
+			//
+			// // WIDTH LINE
 			drawables.push(["Line", {
 				stroke: 'black',
-				strokeWeight: Math.random() * 2 + 4,
-				lineCap: randomLiner(),
-				lineJoin: randomLiner(),
+				strokeWeight: 4,
+				// lineCap: randomLiner(),
+				// lineJoin: randomLiner(),
 				// strokeStyle: [3, 4],
 				points: [
 					{
@@ -638,10 +660,6 @@ let Line = (doc, props) => {
 				]
 			}])
 
-			let xPlusWidthPosition = {
-				x: props.x + grid.column_width(3),
-				y: opts.y + height + 18 + statHeight,
-			}
 
 			currentWord = word
 			currentWordWidth = width + spaceWidth
@@ -662,14 +680,14 @@ let Line = (doc, props) => {
 					1.5
 				)])
 
-			// drawables.push(["Text", {
-			// 	text: "X: " + opts.x.toFixed(0),
-			// 	fontSize: 6,
-			// 	fill: 'black',
-			// 	fontFamily: tag.font,
-			// 	x: props.x + grid.column_width(1),
-			// 	y: opts.y + height + 8 + statHeight,
-			// }])
+			drawables.push(["Text", {
+				text: "X: " + opts.x.toFixed(0),
+				fontSize: 6,
+				fill: 'black',
+				fontFamily: tag.font,
+				x: props.x + grid.column_width(1),
+				y: opts.y + height + 8 + statHeight,
+			}])
 		}
 
 		// rectOpts.fill = [0, 0, 80, 0]
@@ -678,9 +696,12 @@ let Line = (doc, props) => {
 			opts.fill = [0, 100, 50, 0]
 			words.unshift(word)
 			crossed = true
+
+			// if (false) {
 			if (steps == 0) drawables.push(["Text", opts])
 			if (steps == 0) drawables.push(["Line", { points: [{ x: opts.x, y: opts.y }, { x: opts.x + width, y: opts.y + height }], stroke: 'blue', strokeWeight: 1 }])
 			if (steps == 0) drawables.push(["Line", { points: [{ x: opts.x, y: opts.y + height }, { x: opts.x + width, y: opts.y }], stroke: 'blue', strokeWeight: 1 }])
+			// }
 			break
 		}
 
@@ -689,7 +710,9 @@ let Line = (doc, props) => {
 		rectOpts.height = height
 		// rectOpts.stroke = 'blue'
 		rectOpts.fill = [0, 0, 100, 0]
+		// if (false) {
 		if (steps == 0) drawables.push(["Rect", rectOpts])
+		// }
 
 		cursorX += spaceWidth
 
@@ -711,11 +734,36 @@ let Line = (doc, props) => {
 }
 
 
+let side_page_thingie = (doc, yOff) => {
+	let x = inch(10.8)
+	let y = inch(1)
+
+	doc.save()
+	doc.rotate(90, { origin: [x, y] })
+	doc.font('./monument_mono_bold.otf')
+	doc.fontSize(48)
+
+	doc
+		.save()
+		.rect(x, y, inch(8.5), inch(.25))
+		.clip()
+	doc.text('PARAGRAPH', x, y - yOff)
+	doc.restore()
+}
+
 let page_number_fn = (page_number) => (doc) => {
 	let pg = page_number
 	doc.fontSize(9)
+	doc.fillColor([0, 0, 0, 15])
 	if (pg - 1 != 0) doc.text((pg - 1) + '', grid.verso_columns()[1].x, inch(.425))
+	doc.fillColor([0, 0, 0, 100])
 	doc.text((pg) + '', grid.recto_columns()[1].x, inch(.425))
+
+	let yOff = page_number / 2
+	side_page_thingie(doc, yOff)
+
+	doc.restore()
+
 }
 
 spreads.push(...page)
@@ -723,6 +771,8 @@ spreads.push(...page)
 spreads.push([colophon])
 // spreads.push([blankpage])
 // spreads.push([blankpage])
+spreads.push([blankpage])
+spreads.push([blankpage])
 spreads.push([blankpage])
 
 // page_number += 2
@@ -737,7 +787,7 @@ spreads.forEach((e, i) => {
 let signature1 = spreads.slice(0, 13)
 let signature2 = spreads.slice(12, 23)
 let signature3 = spreads.slice(22, 33)
-let signature4 = spreads.slice(32, 43)
+let signature4 = spreads.slice(32, 45)
 // let signature5 = spreads.slice(42, 53)
 
 let writeSpreads = (spreads, filename) => {
@@ -1007,12 +1057,12 @@ let writeSignature = (signature, filename) => {
 	doc.end();
 }
 
-let printing = false
+let printing = true
 if (printing) {
-	writeSignature(signature1, 'zine_signature1.pdf')
-	writeSignature(signature2, 'zine_signature2.pdf')
-	writeSignature(signature3, 'zine_signature3.pdf')
-	writeSignature(signature4, 'zine_signature4.pdf')
+	writeSignature(signature1, 'please_work1.pdf')
+	writeSignature(signature2, 'please_work2.pdf')
+	writeSignature(signature3, 'please_work3.pdf')
+	writeSignature(signature4, 'please_work4.pdf')
 	// writeSignature(signature5, 'zine_signature5.pdf')
 }
 else writeSpreads(spreads, "test.pdf")
