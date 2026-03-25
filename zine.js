@@ -131,18 +131,16 @@ let grid = Grid({
 	hanglines: [
 		inch(.5),
 		inch(.5+2/3),
-		inch(1),
-		inch(1 + 2 / 3),
-		inch(2),
-		inch(2 + 2 / 3),
-		inch(3),
-		inch(3 + 2 / 3),
 
-		inch(4),
-		inch(4 + 2 / 3),
+		inch(1.5),
+		inch(1.5 + 2 / 3),
 
-		inch(5),
-		inch(5 + 2 / 3),
+		inch(2.5),
+		inch(2.5 + 2 / 3),
+
+		inch(3.5),
+		inch(3.5 + 2 / 3),
+
 	],
 
 	spreadWidth: inch(8.5),
@@ -157,22 +155,6 @@ console.log(grid.rectoColumns)
 
 let draw_grid = (doc, grid, opts) => {
 	let [recto, verso] = grid.columns
-
-	let strokeWeight = .5
-	let strokeColor = [10, 0, 0, 0]
-
-	doc.lineWidth(strokeWeight)
-	doc.strokeColor(strokeColor)
-
-	grid.hanglines.forEach(e => {
-		drawLineDocFn({
-			points: [{ x: 0, y: e }, { x: grid.props.pageWidth, y: e }],
-			stroke: [0, 50, 0, 0],
-			strokeStyle: [2],
-			strokeWeight: .5,
-		})(doc)
-
-	})
 
 	if (opts.frame) {
 		let g = grid
@@ -194,19 +176,112 @@ let draw_grid = (doc, grid, opts) => {
 		doc.fill(bg)
 	}
 
-	recto.forEach((col) => {
-		doc.rect(col.x, col.y, col.w, col.h)
-		doc.stroke()
-	})
+	if (opts.drawGrid){
+		let strokeWeight = .5
+		let strokeColor = [10, 0, 0, 0]
 
-	verso.forEach((col) => {
-		doc.rect(col.x, col.y, col.w, col.h)
-		doc.stroke()
-	})
+		doc.lineWidth(strokeWeight)
+		doc.strokeColor(strokeColor)
+
+		grid.hanglines.forEach(e => {
+			drawLineDocFn({
+				points: [{ x: 0, y: e }, { x: grid.props.pageWidth, y: e }],
+				stroke: [0, 50, 0, 0],
+				strokeStyle: [2],
+				strokeWeight: .5,
+			})(doc)
+
+		})
+		recto.forEach((col) => {
+			doc.rect(col.x, col.y, col.w, col.h)
+			doc.stroke()
+		})
+
+		verso.forEach((col) => {
+			doc.rect(col.x, col.y, col.w, col.h)
+			doc.stroke()
+		})
+	}
+
+	if (opts.crops) {
+		let g = grid
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding - 10, y: g.topPadding },
+				{ x: g.leftPadding - 3,  y: g.topPadding }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding, y: g.topPadding - 10 },
+				{ x: g.leftPadding, y: g.topPadding - 3 }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding + g.props.spreadWidth + 3, y: g.topPadding },
+				{ x: g.leftPadding + g.props.spreadWidth + 10, y: g.topPadding }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding + g.props.spreadWidth, y: g.topPadding - 10 },
+				{ x: g.leftPadding + g.props.spreadWidth, y: g.topPadding - 3 }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding + g.props.spreadWidth, y: g.topPadding + g.props.spreadHeight + 3 },
+				{ x: g.leftPadding + g.props.spreadWidth, y: g.topPadding + g.props.spreadHeight + 10 }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding + g.props.spreadWidth + 3, y: g.topPadding + g.props.spreadHeight },
+				{ x: g.leftPadding + g.props.spreadWidth + 10, y: g.topPadding + g.props.spreadHeight }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding - 10, y: g.topPadding + g.props.spreadHeight },
+				{ x: g.leftPadding - 3,  y: g.topPadding + g.props.spreadHeight }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+
+		drawLineDocFn({
+			points: [
+				{ x: g.leftPadding, y: g.topPadding + g.props.spreadHeight + 3 },
+				{ x: g.leftPadding, y: g.topPadding + g.props.spreadHeight + 10 }
+			],
+			stroke: 'black',
+			strokeWeight: 1,
+		})(doc);
+	}
+
 }
 
 
-let blankpage = (doc) => { }
+let blankpage = (doc) => draw_grid(doc, grid, {crops: true})		
 let stylesheet = (doc, t) => Object.entries(t).forEach(([k, v]) => doc[k](v))
 
 let page_number = 1
@@ -226,7 +301,7 @@ let cover = [(doc) => {
 	doc.fillColor('black')
 	doc.text("PARAGRAPH", grid.rectoColumns[1].x, grid.hanglines[3])
 
-	side_page_thingie(doc, 2)
+	// side_page_thingie(doc, 2)
 
 	doc.restore()
 }]
@@ -260,25 +335,36 @@ let Body = (t, x, y) => ["Text", {
 }]
 
 let instructionSheet = [
-	Head("EVERY ITERATION", grid.rectoColumns[1].x, grid.hanglines[3]),
+	Head("EVERY ITERATION", grid.rectoColumns[1].x, grid.hanglines[1]),
 	Body(`x. Get the first word from 'words'
 x. Check if 'Cursor X' + 'Word Width' is (>) Greater than 'Edge'
 +. [If] above condition is true (jump to INCREMENT LINE)
 +. [Else] place the word at 'Cursor X' and 'Cursor Y' and increment 'Cursor X' by 'Word Width'
-`, grid.rectoColumns[1].x, grid.hanglines[4])
+`, grid.rectoColumns[1].x, grid.hanglines[2])
 	,
+]
 
-	Head("INCREMENT LINE", grid.rectoColumns[1].x, grid.hanglines[7]),
+let leftAlignedIncrement = [
+	Head("INCREMENT LINE", grid.rectoColumns[1].x, grid.hanglines[5]),
 	Body(`x. Put current word back in the list
 x. Reset 'Cursor X' to 'Start Position X'
 x. Increment 'Cursor Y' by 'Leading'
-`, grid.rectoColumns[1].x, grid.hanglines[8])
+`, grid.rectoColumns[1].x, grid.hanglines[6])
 ]
 
-let spreads = [cover,
+let righAlignedIncrement = [
+	Head("INCREMENT LINE", grid.rectoColumns[1].x, grid.hanglines[5]),
+	Body(`x. Put current word back in the list
+x. Increment all previous word's 'X' position by remainder of empty space.
+x. Reset 'Cursor X' to 'Start Position X'
+x. Increment 'Cursor Y' by 'Leading'
+`, grid.rectoColumns[1].x, grid.hanglines[6])
+]
+
+let spreads = [
 	[
-		(doc) => runa(doc, instructionSheet),
-		doc => side_page_thingie(doc, 2)
+		(doc) => runa(doc, instructionSheet.concat(leftAlignedIncrement)),
+		blankpage
 	]
 ]
 // spreads.push([basic])
@@ -286,9 +372,9 @@ let spreads = [cover,
 
 let text = `From this sensation trickles emotion and language, and from language flows narrative and meaning, which then flood into identity, society, and the political, commercial, and environment world. But it all must start with form.`
 
-let page = Array(40).fill(0).map((e, i) => {
+let leftPage = Array(42).fill(0).map((e, i) => {
 	return [
-		(doc) => draw_grid(doc, grid, {frame: true}),
+		(doc) => draw_grid(doc, grid, {crops: true}),
 		// ...[
 		// 	i * 2, i * 2 + 1
 		// 	// i * 3, i * 3 + 1, i * 3 + 2
@@ -300,7 +386,41 @@ let page = Array(40).fill(0).map((e, i) => {
 				// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
 				y: grid.hanglines[0],
 				text,
-				width: grid.columnWidth*(6),
+				width: grid.columnWidth*(5.3),
+				height: 150,
+				fontFamily: './marist.ttf',
+				fontSize: 9.25,
+				statsTop: {
+					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
+					x: grid.versoColumns[1].x,
+					y: grid.hanglines[0],
+				},
+				statsBottom: {
+					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
+					x: grid.versoColumns[1].x,
+					y: grid.hanglines[4],
+				}
+			}))
+		},
+	]
+})
+
+let rightPage = Array(42).fill(0).map((e, i) => {
+	return [
+		(doc) => draw_grid(doc, grid, {crops: true}),
+		// ...[
+		// 	i * 2, i * 2 + 1
+		// 	// i * 3, i * 3 + 1, i * 3 + 2
+		// ].map(ii =>
+		(doc) => {
+			runa(doc, ParagraphStepper(doc, {
+				steps: i,
+				align: 'right',
+				x: grid.rectoColumns[1].x,
+				// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
+				y: grid.hanglines[0],
+				text,
+				width: grid.columnWidth*(5.3),
 				height: 150,
 				fontFamily: './marist.ttf',
 				fontSize: 9.25,
@@ -338,11 +458,10 @@ let boxed = (doc, t, x, y, pad, color = 'black') => {
 }
 
 
-
-
 let ParagraphStepper = (doc, props) => {
 	props.fontFamily ? doc.font(props.fontFamily) : 0
 	props.fontSize ? doc.fontSize(props.fontSize) : 0
+	let align = props.align ? props.align : 'left'
 
 	let edgeLine = {
 		stroke: [0, 30, 0, 0],
@@ -388,7 +507,10 @@ let ParagraphStepper = (doc, props) => {
 	// let 
 	while (words.length > 0 && cursorY < (props.y + props.height) && steps > 0) {
 		crossed = false
-		let lineOpts = { words, x: props.x, y: cursorY, width: props.width, steps }
+		let lineOpts = { 
+			words, x: props.x, y: cursorY, width: props.width, steps,
+			align
+		}
 		if (props.fontFamily) lineOpts.fontFamily = props.fontFamily
 		if (props.fontSize) lineOpts.fontSize = props.fontSize
 
@@ -412,7 +534,7 @@ let ParagraphStepper = (doc, props) => {
 		lines.push(['Rect', {
 			x: grid.versoColumns[0].x + 2,
 			y: xDataPosition.y - 7,
-			width: grid.columnWidth*(3),
+			width: grid.columnWidth*(5.5),
 			height: 65,
 			stroke: [100, 0, 0, 0],
 			strokeWeight: 1,
@@ -434,20 +556,20 @@ let ParagraphStepper = (doc, props) => {
 				},
 				{
 					x: props.x,
-					y: props.y + 50,
+					y: props.y ,
 				},
 			]
-
 		}])
 
 
 		lines.push(['Line', {
 			stroke: 'black',
 			strokeWeight: 1,
+			strokeStyle: [3],
 			points: [
 				{
 					x: grid.versoColumns[0].x + 8,
-					y: grid.hanglines[3]
+					y: grid.hanglines[3]+4
 				},
 				{
 					x: grid.versoColumns[0].x + 8,
@@ -457,9 +579,25 @@ let ParagraphStepper = (doc, props) => {
 
 		}])
 
+		lines.push(['Line', {
+			stroke: 'black',
+			strokeWeight: 1,
+			strokeStyle: [3],
+			points: [
+				{
+					x: grid.rectoColumns[0].x,
+					y: grid.hanglines[3]+4,
+				},
+				{
+					x: grid.versoColumns[0].x + 8,
+					y: grid.hanglines[3]+4,
+				},
+			]
+		}])
+
 		lines.push([(doc) => boxed(doc,
 			"Start: " + props.x.toFixed(1),
-			grid.versoColumns[0].x,
+			grid.rectoColumns[0].x,
 			grid.hanglines[3],
 			1.5)
 		])
@@ -468,15 +606,15 @@ let ParagraphStepper = (doc, props) => {
 			"Reset",
 			grid.versoColumns[0].x,
 			xDataPosition.y + 1.5,
-			.5, [100, 0, 0, 0])
+			.75, [100, 0, 0, 0])
 		])
 
 
 		lines.push([(doc) => boxed(doc,
-			"Increment",
+			"Line",
 			grid.versoColumns[0].x,
 			yDataPosition.y + 1.5,
-			.5, [100, 0, 0, 0])
+			.75, [100, 0, 0, 0])
 		])
 
 		lines.push([(doc) => boxed(doc,
@@ -619,14 +757,15 @@ let Line = (doc, props) => {
 
 	let currentWord = ''
 	let currentWordWidth = 0
+	let spaceWidth
+	let pad
 
 	while (words.length > 0 && cursorX < (props.x + props.width) && steps != 0) {
 		let word = words.shift()
 		if (!word) break
 		let width = doc.widthOfString(word)
 		let height = doc.heightOfString(word)
-		let spaceWidth = doc.widthOfString(" ")
-
+		 spaceWidth = doc.widthOfString(" ")
 
 		let opts = {
 			x: cursorX,
@@ -639,6 +778,8 @@ let Line = (doc, props) => {
 
 		steps -= 1
 		cursorX += width
+		currentWord = word
+		currentWordWidth = width + spaceWidth
 
 		let randomLiner = () => Math.random() > .5 ? 'round' : 'square'
 
@@ -703,8 +844,6 @@ let Line = (doc, props) => {
 			}])
 
 
-			currentWord = word
-			currentWordWidth = width + spaceWidth
 
 			drawables.push([
 				(doc) => boxed(doc,
@@ -722,22 +861,24 @@ let Line = (doc, props) => {
 					1.5
 				)])
 
-			drawables.push(["Text", {
-				text: "X: " + opts.x.toFixed(0),
-				fontSize: 6,
-				fill: 'black',
-				fontFamily: tag.font,
-				x: props.x + grid.columnWidth*(1),
-				y: opts.y + height + 8 + statHeight,
-			}])
+			// drawables.push(["Text", {
+			// 	text: "X: " + opts.x.toFixed(0),
+			// 	fontSize: 6,
+			// 	fill: 'black',
+			// 	fontFamily: tag.font,
+			// 	x: props.x + grid.columnWidth*(1),
+			// 	y: opts.y + height + 8 + statHeight,
+			// }])
 		}
 
 		// rectOpts.fill = [0, 0, 80, 0]
 
+	  pad = props.x + props.width - cursorX 
 		if (cursorX > props.x + props.width) {
 			opts.fill = [0, 100, 50, 0]
 			words.unshift(word)
 			crossed = true
+			pad += currentWordWidth
 
 			// if (false) {
 			if (steps == 0) drawables.push(["Text", opts])
@@ -760,10 +901,18 @@ let Line = (doc, props) => {
 
 		drawables.push(["Text", opts])
 
-		if (cursorX > props.x + props.width) {
+		if (cursorX > props.x + props.width ) {
 			cursorX -= spaceWidth
 			break
 		}
+	}
+
+	if (props.align == 'right') {
+		drawables =
+		drawables.map(e => {
+			if (e[1]?.x && steps!=0) e[1].x += pad
+			return e
+		})
 	}
 
 	return {
@@ -796,30 +945,28 @@ let side_page_thingie = (doc, yOff) => {
 let page_number_fn = (page_number) => (doc) => {
 	let pg = page_number
 	doc.fontSize(9)
-	doc.fillColor([0, 0, 0, 15])
-	if (pg - 1 != 0) doc.text((pg - 1) + '', grid.versoColumns[1].x, inch(.425))
-	doc.fillColor([0, 0, 0, 100])
-	doc.text((pg) + '', grid.rectoColumns[1].x, inch(.425))
+	doc.fillColor([0, 0, 0, 45])
+	if (pg - 1 != 0) doc.text((pg - 1) + '', grid.versoColumns[1].x, grid.topPadding+inch(.125))
+	doc.text((pg) + '', grid.rectoColumns[1].x, grid.topPadding+inch(.125))
 
 	let yOff = page_number / 2
-	side_page_thingie(doc, yOff)
+	// side_page_thingie(doc, yOff)
 
 	doc.restore()
 
 }
 
-spreads.push(...page)
+// spreads.push(...rightPage)
+spreads.push(...leftPage)
+// spreads.push([colophon])
 // spreads.push([blankpage])
-spreads.push([colophon])
 // spreads.push([blankpage])
-// spreads.push([blankpage])
-spreads.push([blankpage])
 spreads.push([blankpage])
 spreads.push([blankpage])
 
 // page_number += 2
 spreads.forEach((e, i) => {
-	if (i < 2) return
+	// if (i < 2) return
 	let fn = page_number_fn(page_number)
 	e.push(fn)
 	page_number += 2
@@ -829,7 +976,7 @@ spreads.forEach((e, i) => {
 let signature1 = spreads.slice(0, 13)
 let signature2 = spreads.slice(12, 23)
 let signature3 = spreads.slice(22, 33)
-let signature4 = spreads.slice(32, 45)
+let signature4 = spreads.slice(32)
 // let signature5 = spreads.slice(42, 53)
 
 let writeSpreads = (spreads, filename) => {
@@ -1099,12 +1246,12 @@ let writeSignature = (signature, filename) => {
 	doc.end();
 }
 
-let printing = false
+let printing = true
 if (printing) {
-	writeSignature(signature1, 'please_work1.pdf')
-	writeSignature(signature2, 'please_work2.pdf')
-	writeSignature(signature3, 'please_work3.pdf')
-	writeSignature(signature4, 'please_work4.pdf')
+	writeSignature(signature1, 'left_aligned1.pdf')
+	writeSignature(signature2, 'left_aligned2.pdf')
+	writeSignature(signature3, 'left_aligned3.pdf')
+	writeSignature(signature4, 'left_aligned4.pdf')
 	// writeSignature(signature5, 'zine_signature5.pdf')
 }
 else writeSpreads(spreads, "testingNew.pdf")

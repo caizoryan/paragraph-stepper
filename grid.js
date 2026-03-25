@@ -42,7 +42,7 @@ export class Grid {
 
       // outside + gutters + size
       const x = this.half_page().x + this.props.margin.inside + i * this.props.gutter + i * this.column_width();
-      const h = this.props.page_height
+      const h = this.props.spread_height
 						- (this.props.margin.top + this.props.margin.bottom)
 
       cols.push({ x, y, w, h })
