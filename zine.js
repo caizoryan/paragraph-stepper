@@ -277,7 +277,6 @@ let draw_grid = (doc, grid, opts) => {
 			strokeWeight: 1,
 		})(doc);
 	}
-
 }
 
 
@@ -402,6 +401,10 @@ let leftPage = Array(42).fill(0).map((e, i) => {
 				}
 			}))
 		},
+
+		// doc => {
+		// 	doc.text('WHART THE CUKSKLSLAK', 50,50)
+		// }
 	]
 })
 
@@ -480,6 +483,7 @@ let ParagraphStepper = (doc, props) => {
 
 	let lines = [
 		["Line", edgeLine],
+
 		[(doc) => boxed(doc, "EDGE: " + (props.x + props.width).toFixed(1),
 			props.x + props.width,
 			props.y + props.height,
@@ -515,7 +519,7 @@ let ParagraphStepper = (doc, props) => {
 		if (props.fontSize) lineOpts.fontSize = props.fontSize
 
 		let leftOvers = Line(doc, lineOpts)
-		leftOvers.draw.forEach(e => lines.push(e))
+		// leftOvers.draw.forEach(e => lines.push(e))
 		steps = leftOvers.steps
 		cursorX = leftOvers.cursorX
 		crossed = leftOvers.crossed
@@ -531,82 +535,84 @@ let ParagraphStepper = (doc, props) => {
 		edgeLine.strokeWeight = 1.2
 		edgeLine.stroke = [0, 100, 50, 0]
 
-		lines.push(['Rect', {
-			x: grid.versoColumns[0].x + 2,
-			y: xDataPosition.y - 7,
-			width: grid.columnWidth*(5.5),
-			height: 65,
-			stroke: [100, 0, 0, 0],
-			strokeWeight: 1,
-			fill: 'white',
-		}])
+		// lines.push(['Rect', {
+		// 	x: grid.versoColumns[0].x + 2,
+		// 	y: xDataPosition.y - 7,
+		// 	width: grid.columnWidth*(5.5),
+		// 	height: 65,
+		// 	stroke: [100, 0, 0, 0],
+		// 	strokeWeight: 1,
+		// 	fill: 'white',
+		// }])
+		//
+		// // --------------
+		// // Start Marker
+		// // --------------
+		// // --------------
+		// lines.push(['Line', {
+		// 	stroke: [0, 0, 0, 35],
+		// 	strokeWeight: 1,
+		// 	strokeStyle: [3],
+		// 	points: [
+		// 		{
+		// 			x: props.x,
+		// 			y: grid.hanglines[3]
+		// 		},
+		// 		{
+		// 			x: props.x,
+		// 			y: props.y ,
+		// 		},
+		// 	]
+		// }])
+		//
+		//
+		// lines.push(['Line', {
+		// 	stroke: 'black',
+		// 	strokeWeight: 1,
+		// 	strokeStyle: [3],
+		// 	points: [
+		// 		{
+		// 			x: grid.versoColumns[0].x + 8,
+		// 			y: grid.hanglines[3]+4
+		// 		},
+		// 		{
+		// 			x: grid.versoColumns[0].x + 8,
+		// 			y: xDataPosition.y + 1.5,
+		// 		},
+		// 	]
+		//
+		// }])
+		//
+		// lines.push(['Line', {
+		// 	stroke: 'black',
+		// 	strokeWeight: 1,
+		// 	strokeStyle: [3],
+		// 	points: [
+		// 		{
+		// 			x: grid.rectoColumns[0].x,
+		// 			y: grid.hanglines[3]+4,
+		// 		},
+		// 		{
+		// 			x: grid.versoColumns[0].x + 8,
+		// 			y: grid.hanglines[3]+4,
+		// 		},
+		// 	]
+		// }])
 
-		// --------------
-		// Start Marker
-		// --------------
-		// --------------
-		lines.push(['Line', {
-			stroke: [0, 0, 0, 35],
-			strokeWeight: 1,
-			strokeStyle: [3],
-			points: [
-				{
-					x: props.x,
-					y: grid.hanglines[3]
-				},
-				{
-					x: props.x,
-					y: props.y ,
-				},
-			]
-		}])
+		// lines.push([(doc) => boxed(doc,
+		// 	"Start: " + props.x.toFixed(1),
+		// 	grid.rectoColumns[0].x,
+		// 	grid.hanglines[3],
+		// 	1.5)
+		// ])
 
-
-		lines.push(['Line', {
-			stroke: 'black',
-			strokeWeight: 1,
-			strokeStyle: [3],
-			points: [
-				{
-					x: grid.versoColumns[0].x + 8,
-					y: grid.hanglines[3]+4
-				},
-				{
-					x: grid.versoColumns[0].x + 8,
-					y: xDataPosition.y + 1.5,
-				},
-			]
-
-		}])
-
-		lines.push(['Line', {
-			stroke: 'black',
-			strokeWeight: 1,
-			strokeStyle: [3],
-			points: [
-				{
-					x: grid.rectoColumns[0].x,
-					y: grid.hanglines[3]+4,
-				},
-				{
-					x: grid.versoColumns[0].x + 8,
-					y: grid.hanglines[3]+4,
-				},
-			]
-		}])
-
-		lines.push([(doc) => boxed(doc,
-			"Start: " + props.x.toFixed(1),
-			grid.rectoColumns[0].x,
-			grid.hanglines[3],
-			1.5)
-		])
 
 		lines.push([(doc) => boxed(doc,
 			"Reset",
 			grid.versoColumns[0].x,
 			xDataPosition.y + 1.5,
-			.75, [100, 0, 0, 0])
+			1.5,
+			[100, 0, 0, 0])
 		])
 
 
@@ -614,7 +620,7 @@ let ParagraphStepper = (doc, props) => {
 			"Line",
 			grid.versoColumns[0].x,
 			yDataPosition.y + 1.5,
-			.75, [100, 0, 0, 0])
+			1.5, [100, 0, 0, 0])
 		])
 
 		lines.push([(doc) => boxed(doc,
@@ -635,21 +641,21 @@ let ParagraphStepper = (doc, props) => {
 			"Reset X to Start Position",
 			grid.versoColumns[4].x,
 			xDataPosition.y + 1.5,
-			.5, [100, 0, 0, 0])
+			1.5, [100, 0, 0, 0])
 		])
 
 		lines.push([(doc) => boxed(doc,
 			"Increment Y Position by Leading",
 			grid.versoColumns[4].x,
 			yDataPosition.y + 1.5,
-			.5, [100, 0, 0, 0])
+			1, [100, 0, 0, 0])
 		])
 
+		//
 		// --------------
 		// Conditional
 		// --------------
 		// --------------
-
 
 		lines.push([(doc) => boxed(doc,
 			"When [X + Word Width] > [edge]",
@@ -657,16 +663,6 @@ let ParagraphStepper = (doc, props) => {
 			grid.hanglines[4],
 			1.5, [0, 0, 0, 100])
 		])
-		// lines.push(["Text", {
-		// 	text: "When [X + Word Width] > [edge]",
-		// 	x: grid.recto_columns()[4].x,
-		// 	y: grid.hanglines()[9],
-		// 	width: 232,
-		// 	height: 132,
-		// 	fontFamily: tag.font,
-		// 	fontSize: 7,
-		// 	fill: [0, 0, 0, 50]
-		// }])
 	}
 
 	let wordIndex = totalWords - words.length
@@ -689,8 +685,10 @@ let ParagraphStepper = (doc, props) => {
 		fill: [100, 0, 0, 0]
 	}])
 
+
 	let pos = line(0, props.statsBottom.x, props.statsBottom.y, leading)
 	lines.push([(doc) => boxed(doc, "Cursor", pos.x, pos.y, 2, 'black')])
+
 
 	lines.push(["Text", {
 		text: "[X] " + cursorX.toFixed(1) + " points",
@@ -704,23 +702,11 @@ let ParagraphStepper = (doc, props) => {
 		...style
 	}])
 	//
-	// lines.push(["Text", {
-	// 	text: "[WIDTH] " + (props.width) + " points",
-	// 	...line(4, props.statsBottom.x, props.statsBottom.y, leading),
-	// 	...style
-	// }])
-	//
-	// lines.push(["Text", {
-	// 	text: "[EDGE] " + (props.width + props.x) + " points",
-	// 	...line(5, props.statsBottom.x, props.statsBottom.y, leading),
-	// 	...style
-	// }])
-
 	let wordPosIndex = 4
 	if (crossed) {
 		wordPosIndex = 7
 	}
-
+	//
 	let pos2 = line(wordPosIndex, props.statsBottom.x, props.statsBottom.y, leading)
 	lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
 
@@ -730,19 +716,20 @@ let ParagraphStepper = (doc, props) => {
 		...style
 	}])
 
+
 	lines.push(["Text", {
 		text: "[width] " + currentWordWidth,
 		...line(wordPosIndex + 2, props.statsBottom.x, props.statsBottom.y, leading),
 		...style
 	}])
 
-
 	lines.push(["Text", {
-		text: "",
-		...line(3, props.statsBottom.x, props.statsBottom.y, leading),
-		width: 200,
-		// fontSize: 7,
+		text: "[width] " + currentWordWidth,
+		...line(wordPosIndex + 2, props.statsBottom.x+50, props.statsBottom.y, leading),
+		...style
 	}])
+
+	console.log(lines.length)
 
 	return lines
 }
@@ -814,9 +801,6 @@ let Line = (doc, props) => {
 			drawables.push(["Line", {
 				stroke: 'black',
 				strokeWeight: 4,
-				// lineCap: randomLiner(),
-				// lineJoin: randomLiner(),
-				// strokeStyle: [3, 4],
 				points: [
 					{
 						x: opts.x + width + spaceWidth + 5,
@@ -843,8 +827,6 @@ let Line = (doc, props) => {
 				]
 			}])
 
-
-
 			drawables.push([
 				(doc) => boxed(doc,
 					"X + WORD WIDTH = " + (opts.x + width + spaceWidth).toFixed(1),
@@ -860,7 +842,6 @@ let Line = (doc, props) => {
 					opts.y + height + 8 + statHeight,
 					1.5
 				)])
-
 			// drawables.push(["Text", {
 			// 	text: "X: " + opts.x.toFixed(0),
 			// 	fontSize: 6,
@@ -1217,11 +1198,11 @@ let runa = (doc, drawables) => {
 
 			drawables.forEach((fn) => {
 				if (!fn) return;
-				typeof fns[fn[0]] == "function"
-					? fns[fn[0]](fn[1])(doc)
-					: typeof fn[0] == 'function'
-						? fn[0](doc)
-						: console.log("ERROR: Neither a fn nor a key")
+				 typeof fn[0] == 'function' 
+					? fn[0](doc):
+						typeof fns[fn[0]] == "function"
+						? fns[fn[0]](fn[1])(doc)
+							: console.log("ERROR: Neither a fn nor a key")
 			});
 		},
 	};
@@ -1246,7 +1227,7 @@ let writeSignature = (signature, filename) => {
 	doc.end();
 }
 
-let printing = true
+let printing = false
 if (printing) {
 	writeSignature(signature1, 'left_aligned1.pdf')
 	writeSignature(signature2, 'left_aligned2.pdf')
