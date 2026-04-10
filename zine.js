@@ -2,6 +2,13 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 
 let inch = v => v * 72
+let highlightColor = [0, 0, 100, 0]
+let textFont = './marist.ttf'
+let monoFont = './monument_mono_medium.otf'
+// textFont = './.otf'
+let color = [100, 50, 0, 0]
+highlightColor = [0, 100, 0, 0]
+
 
 let title = {
 	fontSize: 8,
@@ -18,7 +25,7 @@ let body = {
 let tag = {
 	fontSize: 7,
 	fillColor: '#000',
-	font: './monument_mono_medium.otf'
+	font: monoFont
 }
 
 let line = (doc, x1, y1, x2, y2, strokeColor = 'black', strokeWeight = 1) => {
@@ -127,7 +134,7 @@ let grid = Grid({
 	},
 
 	gutter: inch(.125/2),
-	columns: 8,
+	columns: 10,
 	hanglines: [
 		inch(.5),
 		inch(.5+2/3),
@@ -140,18 +147,14 @@ let grid = Grid({
 
 		inch(3.5),
 		inch(3.5 + 2 / 3),
-
 	],
 
 	spreadWidth: inch(8.5),
-	spreadHeight: inch(4.5),
+	spreadHeight: inch(5.5),
 
 	pageWidth: inch(11),
 	pageHeight: inch(8.5)
 })
-
-console.log(grid.rectoColumns)
-
 
 let draw_grid = (doc, grid, opts) => {
 	let [recto, verso] = grid.columns
@@ -177,7 +180,7 @@ let draw_grid = (doc, grid, opts) => {
 	}
 
 	if (opts.drawGrid){
-		let strokeWeight = .5
+		let strokeWeight = 1
 		let strokeColor = [10, 0, 0, 0]
 
 		doc.lineWidth(strokeWeight)
@@ -320,7 +323,7 @@ let Head = (t, x, y) =>
 		x, y,
 		width: grid.columnWidth*(6),
 		fontSize: 11,
-		fontFamily: './monument_mono_regular.otf',
+		fontFamily: monoFont,
 		fill: [0, 0, 0, 65],
 	}]
 
@@ -329,40 +332,81 @@ let Body = (t, x, y) => ["Text", {
 	x, y,
 	width: grid.columnWidth*(6),
 	fontSize: 6,
-	fontFamily: './monument_mono_regular.otf',
+	fontFamily: monoFont,
 	fill: [0, 0, 0, 55],
 }]
 
+let bodyboxed = (doc, t, x, y, pad, color = [0, 0, 0, 65], bg = 'white') => {
+	doc.save()
+	doc.font(monoFont)
+	doc.fontSize(6)
+	doc.lineWidth(1)
+	let width = 175
+	let bounds = doc.boundsOfString(t, {width})
+	doc.undash()
+	doc.rect(
+		x - pad,
+		y - pad,
+		bounds.width + pad * 2,
+		bounds.height + pad * 2)
+		.fillAndStroke(bg, color)
+	doc.fillColor(color)
+	doc.text(t, x, y, {width})
+	doc.restore()
+}
+
+let bodyline = (num, x, y, leading) => ({
+	x,
+	y: y + leading * num,
+})
+
 let instructionSheet = [
-	Head("EVERY ITERATION", grid.rectoColumns[1].x, grid.hanglines[1]),
-	Body(`x. Get the first word from 'words'
-x. Check if 'Cursor X' + 'Word Width' is (>) Greater than 'Edge'
-+. [If] above condition is true (jump to INCREMENT LINE)
-+. [Else] place the word at 'Cursor X' and 'Cursor Y' and increment 'Cursor X' by 'Word Width'
-`, grid.rectoColumns[1].x, grid.hanglines[2])
+	Head("EVERY ITERATION", grid.rectoColumns[2].x-4, grid.hanglines[1]+4 ),
+	...`Get the first word from 'words'
+Check if 'Cursor X' + 'Word Width' is (>) Greater than 'Edge'
+[If] above condition is true (jump to INCREMENT LINE)
+[Else] place the word at 'Cursor X' and 'Cursor Y' and increment 'Cursor X' by 'Word Width'`.split("\n").map((e, i) =>  {
+			let line = bodyline(i, grid.rectoColumns[2].x, i > 0 ? grid.hanglines[2]: grid.hanglines[2]+8, 26)
+			return [(doc) => bodyboxed(doc, e, line.x, line.y, 2)]}
+		)
 	,
 ]
 
+let side = 'left'
+
 let leftAlignedIncrement = [
-	Head("INCREMENT LINE", grid.rectoColumns[1].x, grid.hanglines[5]),
-	Body(`x. Put current word back in the list
-x. Reset 'Cursor X' to 'Start Position X'
-x. Increment 'Cursor Y' by 'Leading'
-`, grid.rectoColumns[1].x, grid.hanglines[6])
+	Head("INCREMENT LINE", grid.rectoColumns[2].x-4, grid.hanglines[5]+4),
+...`Put current word back in the list
+Reset 'Cursor X' to 'Start Position X'
+Increment 'Cursor Y' by 'Leading'`.split("\n").map((e, i) =>  {
+			let line = bodyline(i, grid.rectoColumns[2].x, grid.hanglines[6]+6, 18)
+			return [(doc) => bodyboxed(doc, e, line.x, line.y, 2)]}
+		)
 ]
 
-let righAlignedIncrement = [
-	Head("INCREMENT LINE", grid.rectoColumns[1].x, grid.hanglines[5]),
-	Body(`x. Put current word back in the list
-x. Increment all previous word's 'X' position by remainder of empty space.
-x. Reset 'Cursor X' to 'Start Position X'
-x. Increment 'Cursor Y' by 'Leading'
-`, grid.rectoColumns[1].x, grid.hanglines[6])
+let rightAlignedIncrement = [
+	Head("INCREMENT LINE", grid.rectoColumns[2].x-4, grid.hanglines[5]+4),
+...`Put current word back in the list
+Increment existing line 'X' position by remainder space.
+Reset 'Cursor X' to 'Start Position X'
+Increment 'Cursor Y' by 'Leading'`.split("\n").map((e, i) =>  {
+			let line = bodyline(i, grid.rectoColumns[2].x, grid.hanglines[6]+6, i > 1 ? 22 : 18)
+			return [(doc) => bodyboxed(doc, e, line.x, line.y, 2)]}
+		)
 ]
+
+// let righAlignedIncrement = [
+// 	Head("INCREMENT LINE", grid.rectoColumns[1].x, grid.hanglines[5]),
+// 	Body(`x. Put current word back in the list
+// x. Increment all previous word's 'X' position by remainder of empty space.
+// x. Reset 'Cursor X' to 'Start Position X'
+// x. Increment 'Cursor Y' by 'Leading'
+// `, grid.rectoColumns[1].x, grid.hanglines[6])
+// ]
 
 let spreads = [
 	[
-		(doc) => runa(doc, instructionSheet.concat(leftAlignedIncrement)),
+		(doc) => runa(doc, instructionSheet.concat(side == 'left' ? leftAlignedIncrement : rightAlignedIncrement)),
 		blankpage
 	]
 ]
@@ -373,21 +417,20 @@ let text = `From this sensation trickles emotion and language, and from language
 
 let leftPage = Array(42).fill(0).map((e, i) => {
 	return [
-		(doc) => draw_grid(doc, grid, {crops: true}),
-		// ...[
-		// 	i * 2, i * 2 + 1
-		// 	// i * 3, i * 3 + 1, i * 3 + 2
-		// ].map(ii =>
+		(doc) => draw_grid(doc, grid, {
+			crops: true,
+			drawGrid: true
+		}),
 		(doc) => {
 			runa(doc, ParagraphStepper(doc, {
 				steps: i,
-				x: grid.rectoColumns[1].x,
+				x: grid.rectoColumns[2].x,
 				// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
 				y: grid.hanglines[0],
 				text,
-				width: grid.columnWidth*(5.3),
-				height: 150,
-				fontFamily: './marist.ttf',
+				width: grid.columnWidth*(7.5),
+				height: 160,
+				fontFamily: textFont,
 				fontSize: 9.25,
 				statsTop: {
 					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
@@ -396,8 +439,8 @@ let leftPage = Array(42).fill(0).map((e, i) => {
 				},
 				statsBottom: {
 					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
-					x: grid.versoColumns[1].x,
-					y: grid.hanglines[4],
+					x: grid.rectoColumns[2].x,
+					y: grid.hanglines[5],
 				}
 			}))
 		},
@@ -410,22 +453,18 @@ let leftPage = Array(42).fill(0).map((e, i) => {
 
 let rightPage = Array(42).fill(0).map((e, i) => {
 	return [
-		(doc) => draw_grid(doc, grid, {crops: true}),
-		// ...[
-		// 	i * 2, i * 2 + 1
-		// 	// i * 3, i * 3 + 1, i * 3 + 2
-		// ].map(ii =>
+		(doc) => draw_grid(doc, grid, {crops: true, drawGrid: true}),
 		(doc) => {
 			runa(doc, ParagraphStepper(doc, {
 				steps: i,
 				align: 'right',
-				x: grid.rectoColumns[1].x,
+				x: grid.rectoColumns[2].x,
 				// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
 				y: grid.hanglines[0],
 				text,
-				width: grid.columnWidth*(5.3),
-				height: 150,
-				fontFamily: './marist.ttf',
+				width: grid.columnWidth*(7.5),
+				height: 160,
+				fontFamily: textFont,
 				fontSize: 9.25,
 				statsTop: {
 					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
@@ -434,15 +473,15 @@ let rightPage = Array(42).fill(0).map((e, i) => {
 				},
 				statsBottom: {
 					// x: ii % 2 == 0 ? grid.verso_columns()[0].x : grid.recto_columns()[0].x,
-					x: grid.versoColumns[1].x,
-					y: grid.hanglines[4],
+					x: grid.rectoColumns[2].x,
+					y: grid.hanglines[5],
 				}
 			}))
 		},
 	]
 })
 
-let boxed = (doc, t, x, y, pad, color = 'black') => {
+let boxed = (doc, t, x, y, pad, color = 'black', bg = 'white') => {
 	doc.save()
 	doc.font(tag.font)
 	doc.fontSize(6)
@@ -454,7 +493,7 @@ let boxed = (doc, t, x, y, pad, color = 'black') => {
 		y - pad,
 		bounds.width + pad * 2,
 		bounds.height + pad * 2)
-		.fillAndStroke("white", color)
+		.fillAndStroke(bg, color)
 	doc.fillColor(color)
 	doc.text(t, x, y, { lineBreak: false })
 	doc.restore()
@@ -512,20 +551,21 @@ let ParagraphStepper = (doc, props) => {
 	while (words.length > 0 && cursorY < (props.y + props.height) && steps > 0) {
 		crossed = false
 		let lineOpts = { 
-			words, x: props.x, y: cursorY, width: props.width, steps,
+			words, x: props.x,
+			y: cursorY,
+			width: props.width, steps,
 			align
 		}
 		if (props.fontFamily) lineOpts.fontFamily = props.fontFamily
 		if (props.fontSize) lineOpts.fontSize = props.fontSize
 
 		let leftOvers = Line(doc, lineOpts)
-		// leftOvers.draw.forEach(e => lines.push(e))
+		leftOvers.draw.forEach(e => lines.push(e))
 		steps = leftOvers.steps
 		cursorX = leftOvers.cursorX
 		crossed = leftOvers.crossed
 		currentWord = leftOvers.currentWord
 		currentWordWidth = leftOvers.currentWordWidth.toFixed(1)
-
 		cursorY += leading
 	}
 
@@ -535,81 +575,81 @@ let ParagraphStepper = (doc, props) => {
 		edgeLine.strokeWeight = 1.2
 		edgeLine.stroke = [0, 100, 50, 0]
 
-		// lines.push(['Rect', {
-		// 	x: grid.versoColumns[0].x + 2,
-		// 	y: xDataPosition.y - 7,
-		// 	width: grid.columnWidth*(5.5),
-		// 	height: 65,
-		// 	stroke: [100, 0, 0, 0],
-		// 	strokeWeight: 1,
-		// 	fill: 'white',
-		// }])
+		lines.push(['Rect', {
+			x: grid.rectoColumns[1].x + 2,
+			y: xDataPosition.y - 7,
+			width: grid.columnWidth*(5.5),
+			height: 65,
+			stroke: [100, 0, 0, 0],
+			strokeWeight: 1,
+			fill: [15,0,0,0],
+		}])
 		//
 		// // --------------
 		// // Start Marker
 		// // --------------
 		// // --------------
-		// lines.push(['Line', {
-		// 	stroke: [0, 0, 0, 35],
-		// 	strokeWeight: 1,
-		// 	strokeStyle: [3],
-		// 	points: [
-		// 		{
-		// 			x: props.x,
-		// 			y: grid.hanglines[3]
-		// 		},
-		// 		{
-		// 			x: props.x,
-		// 			y: props.y ,
-		// 		},
-		// 	]
-		// }])
-		//
-		//
-		// lines.push(['Line', {
-		// 	stroke: 'black',
-		// 	strokeWeight: 1,
-		// 	strokeStyle: [3],
-		// 	points: [
-		// 		{
-		// 			x: grid.versoColumns[0].x + 8,
-		// 			y: grid.hanglines[3]+4
-		// 		},
-		// 		{
-		// 			x: grid.versoColumns[0].x + 8,
-		// 			y: xDataPosition.y + 1.5,
-		// 		},
-		// 	]
-		//
-		// }])
-		//
-		// lines.push(['Line', {
-		// 	stroke: 'black',
-		// 	strokeWeight: 1,
-		// 	strokeStyle: [3],
-		// 	points: [
-		// 		{
-		// 			x: grid.rectoColumns[0].x,
-		// 			y: grid.hanglines[3]+4,
-		// 		},
-		// 		{
-		// 			x: grid.versoColumns[0].x + 8,
-		// 			y: grid.hanglines[3]+4,
-		// 		},
-		// 	]
-		// }])
+		lines.push(['Line', {
+			stroke: [0, 0, 0, 35],
+			strokeWeight: 1,
+			strokeStyle: [3],
+			points: [
+				{
+					x: props.x,
+					y: grid.hanglines[3]
+				},
+				{
+					x: props.x,
+					y: props.y ,
+				},
+			]
+		}])
 
-		// lines.push([(doc) => boxed(doc,
-		// 	"Start: " + props.x.toFixed(1),
-		// 	grid.rectoColumns[0].x,
-		// 	grid.hanglines[3],
-		// 	1.5)
-		// ])
+
+		lines.push(['Line', {
+			stroke: 'black',
+			strokeWeight: 1,
+			strokeStyle: [3],
+			points: [
+				{
+					x: grid.rectoColumns[1].x + 8,
+					y: grid.hanglines[3]+4
+				},
+				{
+					x: grid.rectoColumns[1].x + 8,
+					y: xDataPosition.y + 1.5,
+				},
+			]
+
+		}])
+
+		lines.push(['Line', {
+			stroke: 'black',
+			strokeWeight: 1,
+			strokeStyle: [3],
+			points: [
+				{
+					x: grid.rectoColumns[1].x,
+					y: grid.hanglines[3]+4,
+				},
+				{
+					x: grid.rectoColumns[1].x + 8,
+					y: grid.hanglines[3]+4,
+				},
+			]
+		}])
+
+		lines.push([(doc) => boxed(doc,
+			"Start: " + props.x.toFixed(1),
+			grid.rectoColumns[1].x,
+			grid.hanglines[3],
+			1.5)
+		])
 
 
 		lines.push([(doc) => boxed(doc,
 			"Reset",
-			grid.versoColumns[0].x,
+			grid.rectoColumns[1].x,
 			xDataPosition.y + 1.5,
 			1.5,
 			[100, 0, 0, 0])
@@ -618,35 +658,35 @@ let ParagraphStepper = (doc, props) => {
 
 		lines.push([(doc) => boxed(doc,
 			"Line",
-			grid.versoColumns[0].x,
+			grid.rectoColumns[1].x,
 			yDataPosition.y + 1.5,
 			1.5, [100, 0, 0, 0])
 		])
 
 		lines.push([(doc) => boxed(doc,
 			"+",
-			grid.versoColumns[0].x,
+			grid.rectoColumns[1].x,
 			yDataPosition.y + 15,
 			1.5)
 		])
 
 		lines.push([(doc) => boxed(doc,
 			"Leading: " + leading,
-			grid.versoColumns[0].x,
+			grid.rectoColumns[1].x,
 			yDataPosition.y + 30,
 			1.5)
 		])
 
 		lines.push([(doc) => boxed(doc,
 			"Reset X to Start Position",
-			grid.versoColumns[4].x,
+			grid.rectoColumns[5].x,
 			xDataPosition.y + 1.5,
 			1.5, [100, 0, 0, 0])
 		])
 
 		lines.push([(doc) => boxed(doc,
 			"Increment Y Position by Leading",
-			grid.versoColumns[4].x,
+			grid.rectoColumns[5].x,
 			yDataPosition.y + 1.5,
 			1, [100, 0, 0, 0])
 		])
@@ -659,8 +699,8 @@ let ParagraphStepper = (doc, props) => {
 
 		lines.push([(doc) => boxed(doc,
 			"When [X + Word Width] > [edge]",
-			grid.versoColumns[4].x,
-			grid.hanglines[4],
+			grid.rectoColumns[5].x,
+			props.statsBottom.y,
 			1.5, [0, 0, 0, 100])
 		])
 	}
@@ -687,7 +727,7 @@ let ParagraphStepper = (doc, props) => {
 
 
 	let pos = line(0, props.statsBottom.x, props.statsBottom.y, leading)
-	lines.push([(doc) => boxed(doc, "Cursor", pos.x, pos.y, 2, 'black')])
+	lines.push([(doc) => boxed(doc, "CURSOR", pos.x, pos.y, 2, 'white', 'black',)])
 
 
 	lines.push(["Text", {
@@ -708,7 +748,7 @@ let ParagraphStepper = (doc, props) => {
 	}
 	//
 	let pos2 = line(wordPosIndex, props.statsBottom.x, props.statsBottom.y, leading)
-	lines.push([(doc) => boxed(doc, "Word", pos2.x, pos2.y, 2, 'black')])
+	lines.push([(doc) => boxed(doc, "WORD", pos2.x, pos2.y, 2,'white', 'black', )])
 
 	lines.push(["Text", {
 		text: '[word] "' + currentWord + '"',
@@ -723,13 +763,6 @@ let ParagraphStepper = (doc, props) => {
 		...style
 	}])
 
-	lines.push(["Text", {
-		text: "[width] " + currentWordWidth,
-		...line(wordPosIndex + 2, props.statsBottom.x+50, props.statsBottom.y, leading),
-		...style
-	}])
-
-	console.log(lines.length)
 
 	return lines
 }
@@ -757,7 +790,9 @@ let Line = (doc, props) => {
 		let opts = {
 			x: cursorX,
 			y: props.y,
-			text: word
+			text: word,
+			fill: color,
+			fontFamily: textFont,
 		}
 
 		if (props.fontFamily) opts.fontFamily = props.fontFamily
@@ -771,6 +806,10 @@ let Line = (doc, props) => {
 		let randomLiner = () => Math.random() > .5 ? 'round' : 'square'
 
 		let statHeight = 45
+
+		if (cursorX > props.x + props.width) {
+			crossed = true
+		}
 
 		if (
 			// false
@@ -796,11 +835,12 @@ let Line = (doc, props) => {
 				},
 				]
 			}])
-			//
+			
+			
 			// // WIDTH LINE
 			drawables.push(["Line", {
-				stroke: 'black',
-				strokeWeight: 4,
+				stroke: crossed ? "red" : 'black',
+				strokeWeight: crossed ? 2 : 4, 
 				points: [
 					{
 						x: opts.x + width + spaceWidth + 5,
@@ -821,7 +861,7 @@ let Line = (doc, props) => {
 
 					{
 						x: props.x + grid.columnWidth*(3) + 3,
-						y: opts.y + height + 18 + statHeight
+						y: opts.y + height + 28 + statHeight
 
 					},
 				]
@@ -830,7 +870,7 @@ let Line = (doc, props) => {
 			drawables.push([
 				(doc) => boxed(doc,
 					"X + WORD WIDTH = " + (opts.x + width + spaceWidth).toFixed(1),
-					props.x + grid.columnWidth*(3),
+					props.x + grid.columnWidth*(3) + 12,
 					opts.y + height + 18 + statHeight,
 					1.5, crossed ? "red" : 'black'
 				)])
@@ -838,7 +878,7 @@ let Line = (doc, props) => {
 			drawables.push([
 				(doc) => boxed(doc,
 					"X: " + opts.x.toFixed(1),
-					props.x + grid.columnWidth*(1),
+					props.x+8,
 					opts.y + height + 8 + statHeight,
 					1.5
 				)])
@@ -855,10 +895,10 @@ let Line = (doc, props) => {
 		// rectOpts.fill = [0, 0, 80, 0]
 
 	  pad = props.x + props.width - cursorX 
+
 		if (cursorX > props.x + props.width) {
 			opts.fill = [0, 100, 50, 0]
 			words.unshift(word)
-			crossed = true
 			pad += currentWordWidth
 
 			// if (false) {
@@ -872,11 +912,12 @@ let Line = (doc, props) => {
 		let rectOpts = { ...opts }
 		rectOpts.width = width + spaceWidth
 		rectOpts.height = height
-		// rectOpts.stroke = 'blue'
-		rectOpts.fill = [0, 0, 100, 0]
-		// if (false) {
-		if (steps == 0) drawables.push(["Rect", rectOpts])
-		// }
+		rectOpts.fill = highlightColor
+
+		if (steps == 0){
+			drawables.push(["Rect", rectOpts])
+			opts.fill = [0,0,0,0]
+		}
 
 		cursorX += spaceWidth
 
@@ -902,43 +943,51 @@ let Line = (doc, props) => {
 		words, steps, cursorX,
 		currentWord,
 		currentWordWidth,
+
 	}
 }
 
 
-let side_page_thingie = (doc, yOff) => {
-	let x = inch(10.8)
-	let y = inch(1)
+let side_page_thingie = (doc, yOff, side='left') => {
+	let x = inch(9.70)
+	let y = inch(5.4)
+
+	if (side == 'left') y = inch(5.8)
 
 	doc.save()
-	doc.rotate(90, { origin: [x, y] })
-	doc.font('./monument_mono_bold.otf')
-	doc.fontSize(48)
+	doc.rotate(-90, { origin: [x, y] })
+	doc.font(monoFont)
+	doc.fontSize(38)
 
 	doc
 		.save()
-		.rect(x, y, inch(8.5), inch(.25))
+		.rect(x, y, inch(6.5), inch(.125))
 		.clip()
-	doc.text('PARAGRAPH', x, y - yOff)
+	doc.fill('black')
+
+	if (side == 'left') doc.text('PARAGRAPH', x, y - yOff, {lineBreak: false})
+	else doc.text('STEPPER', x, y - yOff, {lineBreak: false})
+
 	doc.restore()
 }
 
-let page_number_fn = (page_number) => (doc) => {
+let page_number_fn = (page_number, side) => (doc) => {
 	let pg = page_number
 	doc.fontSize(9)
 	doc.fillColor([0, 0, 0, 45])
 	if (pg - 1 != 0) doc.text((pg - 1) + '', grid.versoColumns[1].x, grid.topPadding+inch(.125))
-	doc.text((pg) + '', grid.rectoColumns[1].x, grid.topPadding+inch(.125))
+	doc.text((pg) + '', grid.rectoColumns[2].x, grid.topPadding+inch(.125))
 
 	let yOff = page_number / 2
-	// side_page_thingie(doc, yOff)
+	side_page_thingie(doc, yOff, side)
 
 	doc.restore()
 
 }
 
-// spreads.push(...rightPage)
-spreads.push(...leftPage)
+if (side == 'left')  spreads.push(...leftPage)
+else spreads.push(...rightPage)
+
 // spreads.push([colophon])
 // spreads.push([blankpage])
 // spreads.push([blankpage])
@@ -948,7 +997,7 @@ spreads.push([blankpage])
 // page_number += 2
 spreads.forEach((e, i) => {
 	// if (i < 2) return
-	let fn = page_number_fn(page_number)
+	let fn = page_number_fn(page_number, side)
 	e.push(fn)
 	page_number += 2
 })
@@ -1080,7 +1129,7 @@ let drawTextDocFn = (props) => (doc) => {
 	// let stroke = props.stroke ? true : false;
 
 	if (props.fill) doc.fillColor(props.fill);
-	if (fontFamily && availableFonts.includes(fontFamily)) doc.font(fontFamily);
+	if (fontFamily) doc.font(fontFamily);
 	// if (props.stroke) doc.stroke(props.stroke);
 	doc.fontSize(fontSize);
 	doc.text(text, x, y, { width, height });
@@ -1227,12 +1276,12 @@ let writeSignature = (signature, filename) => {
 	doc.end();
 }
 
-let printing = false
+let printing = true
 if (printing) {
-	writeSignature(signature1, 'left_aligned1.pdf')
-	writeSignature(signature2, 'left_aligned2.pdf')
-	writeSignature(signature3, 'left_aligned3.pdf')
-	writeSignature(signature4, 'left_aligned4.pdf')
+	writeSignature(signature1, side+'_aligned1.pdf')
+	writeSignature(signature2, side+'_aligned2.pdf')
+	writeSignature(signature3, side+'_aligned3.pdf')
+	writeSignature(signature4, side+'_aligned4.pdf')
 	// writeSignature(signature5, 'zine_signature5.pdf')
 }
 else writeSpreads(spreads, "testingNew.pdf")
